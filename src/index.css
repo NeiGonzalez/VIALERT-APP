@@ -581,3 +581,23 @@ label {
   .login-form-card input { min-height:38px; padding:.38rem .65rem; }
   .compact-action { min-height:40px; margin-top:.4rem; }
 }
+
+
+/* Ajuste final QA: Detalles usa toda la altura disponible del modal.
+   Evita una caja interna baja con scroll poco evidente en celulares. */
+.report-details-scroll {
+  padding: 0;
+  overflow: visible;
+  max-height: none;
+}
+
+@media (max-width: 640px) {
+  .modal-content {
+    max-height: calc(100dvh - 0.5rem);
+  }
+
+  .report-details-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+}

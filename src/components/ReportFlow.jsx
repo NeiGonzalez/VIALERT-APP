@@ -387,7 +387,7 @@ export default function ReportFlow({ onClose, isOnline }) {
         )}
 
         {step === 2 && (
-          <div className="scroll-container" style={{ padding: 0, maxHeight: '55vh', overflowY: 'auto' }}>
+          <div className="report-details-scroll">
             {type === 'fire' && (
               <>
                 <div className="toggle-row" onClick={() => toggleAnswer('genteCerca')}>
@@ -428,23 +428,25 @@ export default function ReportFlow({ onClose, isOnline }) {
               placeholder="Describí lo que ves..."
             />
 
-            {supportsSpeech && (
-              <button
-                className={listening ? 'btn-danger' : 'btn-secondary'}
-                style={{ width: '100%', marginTop: '0.75rem' }}
-                onClick={() => {
-                  if (listening) {
-                    stopListening()
-                    showMsg('Dictado finalizado.', 'success')
-                  } else {
-                    dictationBase.current = description.trim()
-                    startListening()
-                    showMsg('Describí lo que ves. Te escucho.', 'info')
-                  }
-                }}>
-                {listening ? '⏹ Terminar dictado' : '🎤 Dictar descripción'}
-              </button>
-            )}
+            <button
+              className={listening ? 'btn-danger' : 'btn-secondary'}
+              style={{ width: '100%', marginTop: '0.75rem' }}
+              onClick={() => {
+                if (!supportsSpeech) {
+                  showMsg('El dictado de texto no está disponible en este navegador. Podés escribir o grabar un audio.', 'warning')
+                  return
+                }
+                if (listening) {
+                  stopListening()
+                  showMsg('Dictado finalizado.', 'success')
+                } else {
+                  dictationBase.current = description.trim()
+                  startListening()
+                  showMsg('Describí lo que ves. Te escucho.', 'info')
+                }
+              }}>
+              {listening ? '⏹ Terminar dictado' : '🎤 Dictar descripción'}
+            </button>
             {listening && (
               <div className="listening-indicator" role="status" aria-live="polite">
                 <div className="voice-bars" aria-hidden="true"><i/><i/><i/><i/><i/></div>
