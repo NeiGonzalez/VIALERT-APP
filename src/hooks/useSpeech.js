@@ -82,7 +82,8 @@ export function useSpeech() {
     // Ventana máxima: 45 s. El usuario puede terminar antes con el botón.
     const deadline = Date.now() + 45000
     let accumulated = ''
-    let currentSession = ''
+    let sessionFinal = ''
+    let sessionInterim = ''
 
     const launch = () => {
       if (dictationCancelledRef.current || Date.now() >= deadline) {
@@ -96,28 +97,57 @@ export function useSpeech() {
       rec.continuous = true
       rec.interimResults = true
       rec.maxAlternatives = 1
-      currentSession = ''
+      sessionFinal = ''
+      sessionInterim = ''
 
       rec.onstart = () => setListening(true)
       rec.onresult = (e) => {
-        let sessionText = ''
+        // Chrome vuelve a entregar los resultados provisionales varias veces.
+        // Los provisionales se REEMPLAZAN; sólo los resultados finales se consolidan.
+        let finalText = ''
+        let interimText = ''
+
         for (let i = 0; i < e.results.length; i++) {
-          sessionText += e.results[i][0].transcript + ' '
+          const text = (e.results[i][0]?.transcript || '').trim()
+          if (!text) continue
+          if (e.results[i].isFinal) finalText += `${text} `
+          else interimText += `${text} `
         }
-        currentSession = sessionText.trim()
-        const complete = [accumulated, currentSession].filter(Boolean).join(' ').trim()
-        setTranscript(complete)
+
+        sessionFinal = finalText.trim()
+        sessionInterim = interimText.trim()
+        const visible = [accumulated, sessionFinal, sessionInterim]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        setTranscript(visible)
       }
       rec.onerror = (e) => {
         const fatal = ['not-allowed', 'service-not-allowed', 'audio-capture'].includes(e.error)
         if (fatal) stopListening()
       }
       rec.onend = () => {
-        if (currentSession) {
-          accumulated = [accumulated, currentSession].filter(Boolean).join(' ').trim()
-          currentSession = ''
+        // Al cerrar una sesión, consolidamos una sola vez lo reconocido.
+        // Si Chrome no llegó a marcar el último fragmento como final, conservamos el provisional.
+        const sessionText = [sessionFinal, sessionInterim]
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+
+        if (sessionText) {
+          accumulated = [accumulated, sessionText]
+            .filter(Boolean)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim()
           setTranscript(accumulated)
         }
+
+        sessionFinal = ''
+        sessionInterim = ''
+
         if (!dictationCancelledRef.current && Date.now() < deadline) {
           // Chrome puede cortar por una pausa: reabrimos mientras siga dentro de los 45 s.
           window.setTimeout(launch, 120)
